@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ABC Tools - Разделение партитуры</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .error { color: #ff4444; }
+        .success { color: #44cc44; }
+        .instruction { margin: 20px 0; }
+        .instruction pre { background: #2d2d2d; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <h1>ABC Tools</h1>
+        <a href="/" class="back-link">← Назад на главную</a>
+    </header>
+
+    <main class="content-wrapper">
+        <section class="intro-section">
+            <h2>Разделение партитуры на строки</h2>
+            <p class="description">
+                Утилита для разделения длинной многоголосой партитуры на несколько строк по тактам
+                с возможностью указать количество тактов в каждой строке.
+            </p>
+
+            <div class="instruction">
+                <h3>Инструкция:</h3>
+                <p>Введите ноты из многоголосой партитуры в формате:</p>
+                <pre>V:1 (далее все ноты голоса 1)
+V:2 (далее все ноты голоса 2)
+...
+V:N (далее все ноты голоса N)</pre>
+                <p>Важно: Не включайте подтекстовку (w:) и заголовок партитуры!</p>
+            </div>
+        </section>
+
+        <textarea id="inputStrings" rows="15" cols="100" placeholder="Введите партитуру здесь"></textarea><br>
+        <button onclick="analyzeTacts()" class="btn">Анализировать такты</button><br>
+        <div id="tactReport"></div><br>
+        <div id="lineSettings" style="display: none;">
+            <h4>Настройка количества тактов для строк:</h4>
+            <div id="lineInputs"></div>
+            <div id="remainingTactsInfo"></div>
+            <button onclick="addLineInput()" id="addLineButton" class="btn">Добавить строку</button>
+            <button onclick="recalculateTacts()" class="btn">Пересчитать такты</button><br>
+            <button onclick="parseStrings()" class="btn">Парсинг по настройкам</button><br>
+        </div>
+        <div id="output"></div>
+        <div id="report"></div>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; mgmob 2025</p>
+    </footer>
+
+    <script>
+        // Здесь вставьте ваш существующий JavaScript код из файла
+        let totalTactsPerVoice = [];
+        let totalLines = 0;
+
+        function analyzeTacts() {
+            const inputStrings = document.getElementById('inputStrings').value.split('\n');
+            const tactReportDiv = document.getElementById('tactReport');
+            tactReportDiv.innerHTML = "";
+            totalTactsPerVoice = [];
+
+            for (let i = 0; i < inputStrings.length; i++) {
+                const line = inputStrings[i].trim();
+                if (!line) continue;
+
+                 // Проверка на закрытие тактов
+                if (!checkTactClosure(line)) {
+                    tactReportDiv.innerHTML += `<p class="error">Ошибка: Такты в голосе ${i + 1} не закрыты.</p>`;
+                    return; // Прерываем выполнение, если найдена ошибка
+                }
+
+                const tacts = countTacts(line);
+                totalTactsPerVoice.push(tacts);
+
+                const voiceReport = document.createElement('p');
+                voiceReport.textContent = `Голос ${i + 1}: ${tacts} тактов`;
+
+                if (totalTactsPerVoice[0] !== undefined && tacts !== totalTactsPerVoice[0]) {
+                    voiceReport.classList.add('error');
+                    voiceReport.textContent += " (Количество тактов не совпадает с другими голосами)";
+                }
+
+                tactReportDiv.appendChild(voiceReport);
+            }
+
+            if (totalTactsPerVoice.every(t => t === totalTactsPerVoice[0])) {
+                tactReportDiv.innerHTML += `<p class="success">Все голоса содержат одинаковое количество тактов.</p>`;
+            } else {
+                tactReportDiv.innerHTML += `<p class="error">Ошибка: Количество тактов в голосах различается.</p>`;
+            }
+
+            const totalTacts = totalTactsPerVoice[0];
+            document.getElementById('lineSettings').style.display = 'block';
+            renderInitialLineInput(totalTacts);
+        }
+
+        function countTacts(line) {
+            return splitByTacts(line.trim()).length;
+        }
+
+        function checkTactClosure(line) {
+            const barPatterns = ['|]', '||', '[|', '|:', ':|', '::', '|'];
+            const lastChar = line.trim().slice(-1); // Последний символ строки
+            const lastTwoChars = line.trim().slice(-2); // Последние два символа строки
+
+            // Проверяем, заканчивается ли строка на один из разделителей
+            if (!barPatterns.includes(lastChar) && !barPatterns.includes(lastTwoChars)) {
+                return false; // Такт не закрыт
+            }
+            return true; // Такт закрыт
+        }
+
+        function splitByTacts(strText) {
+            const barPatterns = ['|]', '||', '[|', '|:', ':|', '::', '|'];
+            const tacts = [];
+            let start = 0;
+            let i = 0;
+
+            while (i < strText.length) {
+                let foundPattern = null;
+                for (const pattern of barPatterns) {
+                    if (strText.startsWith(pattern, i)) {
+                        foundPattern = pattern;
+                        break;
+                    }
+                }
+                if (foundPattern) {
+                    const tact = strText.slice(start, i + foundPattern.length);
+                    tacts.push(tact);
+                    start = i + foundPattern.length;
+                    i = start;
+                } else {
+                    i++;
+                }
+            }
+
+            if (start < strText.length) {
+                tacts.push(strText.slice(start));
+            }
+
+            return tacts;
+        }
+
+        function renderInitialLineInput(totalTacts) {
+            const lineInputsDiv = document.getElementById('lineInputs');
+            lineInputsDiv.innerHTML = "";
+            const input = createLineInput(totalTacts, true);
+            lineInputsDiv.appendChild(input);
+            updateRemainingTactsInfo();
+        }
+
+        function createLineInput(remainingTacts, isFirst = false) {
+            const container = document.createElement('div');
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = isFirst ? '' : 0;
+            input.min = 0;
+            input.max = remainingTacts;
+            input.oninput = () => updateRemainingTactsInfo();
+
+            const label = document.createElement('label');
+            label.textContent = `Тактов: `;
+            label.appendChild(input);
+
+            const remainingLabel = document.createElement('span');
+            remainingLabel.className = 'remaining-label';
+            remainingLabel.textContent = `Осталось: ${remainingTacts}`;
+
+            const addButton = document.createElement('button');
+            addButton.textContent = 'Добавить строку';
+            addButton.onclick = () => addLineInput(input.value);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Удалить строку';
+            deleteButton.onclick = () => removeLineInput(container, input.value);
+
+            container.appendChild(label);
+            container.appendChild(remainingLabel);
+            container.appendChild(addButton);
+            container.appendChild(deleteButton);
+
+            return container;
+        }
+
+        function addLineInput() {
+            const lineInputsDiv = document.getElementById('lineInputs');
+            const remainingTacts = getRemainingTacts();
+
+            if (remainingTacts <= 0) {
+                alert("Невозможно добавить больше строк: все такты уже распределены.");
+                return;
+            }
+
+            const newInput = createLineInput(remainingTacts);
+            lineInputsDiv.appendChild(newInput);
+            updateRemainingTactsInfo();
+        }
+
+        function removeLineInput(container, value) {
+            const lineInputsDiv = document.getElementById('lineInputs');
+            lineInputsDiv.removeChild(container);
+            updateRemainingTactsInfo();
+        }
+
+        function getRemainingTacts() {
+            const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
+            const usedTacts = inputs.reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+            return totalTactsPerVoice[0] - usedTacts;
+        }
+
+        function updateRemainingTactsInfo() {
+            const totalTacts = totalTactsPerVoice[0];
+            const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
+            let remaining = totalTacts;
+
+            inputs.forEach(input => {
+                const container = input.closest('div');
+                const remainingLabel = container.querySelector('.remaining-label');
+
+                const currentValue = parseInt(input.value) || 0;
+                input.max = remaining;
+
+                if (currentValue > remaining) {
+                    input.value = remaining;
+                }
+
+                const newValue = parseInt(input.value) || 0;
+                remaining -= newValue;
+
+                if (remainingLabel) {
+                    remainingLabel.textContent = `Осталось: ${remaining >= 0 ? remaining : 0}`;
+                }
+            });
+
+            const remainingTacts = remaining;
+            const globalRemainingLabel = document.getElementById('remainingTactsInfo');
+            globalRemainingLabel.textContent = `Оставшиеся такты: ${remainingTacts}`;
+
+            if (remainingTacts < 0) {
+                globalRemainingLabel.classList.add('error');
+            } else {
+                globalRemainingLabel.classList.remove('error');
+            }
+
+            const addLineButton = document.getElementById('addLineButton');
+            addLineButton.disabled = remainingTacts <= 0;
+        }
+
+        function recalculateTacts() {
+            const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
+            const totalUsedTacts = inputs.reduce((sum, input) => sum + (parseInt(input.value) || 0, 0));
+            const totalTacts = totalTactsPerVoice[0];
+
+            if (totalUsedTacts > totalTacts) {
+                alert("Использовано больше тактов, чем доступно. Удаляю лишние строки.");
+                while (getRemainingTacts() < 0) {
+                    const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
+                    const lastInput = inputs[inputs.length - 1];
+                    lastInput.closest('div').remove();
+                }
+            }
+
+            updateRemainingTactsInfo();
+        }
+
+        function parseStrings() {
+            const inputStrings = document.getElementById('inputStrings').value.split('\n');
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = "";
+            const reportDiv = document.getElementById('report');
+            reportDiv.innerHTML = "<h4>Отчет:</h4>";
+
+            const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
+            const tactsPerLine = inputs.map(input => parseInt(input.value) || 0);
+
+            const jsonData = [];
+            for (let i = 0; i < inputStrings.length; i++) {
+                const line = inputStrings[i].trim();
+                if (!line) continue;
+
+                const headerMatch = line.match(/\[.*?\]/);
+                const strTitle = headerMatch ? headerMatch[0] : "";
+                const strText = headerMatch ? line.replace(headerMatch[0], "") : line;
+
+                jsonData.push({
+                    strNumber: i,
+                    strTitle: strTitle,
+                    subStrs: splitByTacts(strText)
+                });
+            }
+
+            let currentTactIndex = 0;
+            const reportData = [];
+
+            for (const [index, tacts] of tactsPerLine.entries()) {
+                const remainingTacts = totalTactsPerVoice[0] - currentTactIndex;
+                const actualTacts = Math.min(tacts, remainingTacts);
+                const lineReport = { expected: tacts, actual: 0 };
+
+                if (jsonData.length > 0) {
+                    const elements = jsonData[0].subStrs.slice(currentTactIndex, currentTactIndex + actualTacts);
+                    lineReport.actual = elements.length;
+                }
+
+                jsonData.forEach(obj => {
+                    const elements = obj.subStrs.slice(currentTactIndex, currentTactIndex + actualTacts);
+                    outputDiv.innerHTML += `${obj.strTitle} ${elements.join('')}<br>`;
+                });
+
+                currentTactIndex += actualTacts;
+                reportData.push(lineReport);
+            }
+
+            reportData.forEach((line, idx) => {
+                reportDiv.innerHTML += `<p>Строка ${idx + 1}: Ожидаемо: ${line.expected}, Фактически: ${line.actual}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>

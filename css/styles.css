@@ -1,3 +1,80 @@
+/* Новые стили для главной страницы */
+.site-header {
+    background: #2d2d2d;
+    color: #fff;
+    padding: 2rem 1rem;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.content-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.tools-section {
+    margin-bottom: 40px;
+}
+
+.tool-item {
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tool-item h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.tool-item p {
+    color: #666;
+    margin: 10px 0;
+}
+
+.btn {
+    display: inline-block;
+    background: #555;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.btn:hover {
+    background: #777;
+}
+
+.btn.disabled {
+    background: #999;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.site-footer {
+    background: #333;
+    color: #fff;
+    text-align: center;
+    padding: 1rem;
+    margin-top: 40px;
+}
+
+.back-link {
+    color: #fff;
+    text-decoration: none;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Базовые элементы */
 body {
     font-family: 'Roboto Mono', monospace;
     margin: 0;
@@ -7,65 +84,157 @@ body {
     line-height: 1.6;
 }
 
-header {
-    background: #333;
-    color: #fff;
-    padding: 1rem 0;
-    margin-bottom: 20px;
-}
-
-nav ul {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-}
-
-nav a {
-    color: #fff;
-    text-decoration: none;
-}
-
-main {
+/* Контейнеры */
+.content-wrapper {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 20px;
 }
 
-.parser-container {
-    display: grid;
-    gap: 20px;
+/* Заголовки */
+.intro-section h2 {
+    color: #2d2d2d;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 8px;
 }
 
-textarea {
-    width: 100%;
-    height: 200px;
-    padding: 10px;
-    font-family: inherit;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+.intro-section h3 {
+    color: #555;
+    margin-top: 25px;
 }
 
-button {
-    padding: 10px 20px;
-    background: #555;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+/* Текстовые элементы */
+.description {
+    color: #666;
+    margin: 15px 0;
 }
 
-pre {
+.instruction {
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.instruction pre {
     background: #2d2d2d;
     color: #ccc;
-    padding: 20px;
+    padding: 15px;
     border-radius: 4px;
     overflow-x: auto;
 }
 
-footer {
-    margin-top: 40px;
-    text-align: center;
-    padding: 1rem 0;
-    border-top: 1px solid #ccc;
+/* Текстовая область */
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-family: 'Roboto Mono', monospace;
+    resize: vertical;
+}
+
+/* Кнопки */
+.btn {
+    background: #555;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 5px;
+}
+
+.btn:hover {
+    background: #777;
+}
+
+.btn:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+
+/* Сообщения */
+.error {
+    color: #ff4444;
+    background: #ffeeee;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.success {
+    color: #44cc44;
+    background: #eeffee;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* Блок настроек */
+#lineSettings {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+#lineSettings h4 {
+    margin-top: 0;
+    color: #555;
+}
+
+#lineInputs div {
+    margin: 15px 0;
+}
+
+.remaining-label {
+    margin-left: 10px;
+    color: #666;
+}
+
+/* Выходные данные */
+#output {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+    white-space: pre-wrap;
+}
+
+/* Отчет */
+#report {
+    background: #f0f0f0;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+/* Стили для полей ввода */
+#lineInputs input[type="number"] {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 0 10px;
+}
+
+/* Отступы между элементами */
+#tactReport p {
+    margin: 8px 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    textarea {
+        width: 100%;
+    }
+
+    .instruction pre {
+        overflow-x: auto;
+    }
 }
