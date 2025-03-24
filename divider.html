@@ -47,8 +47,10 @@
             <button onclick="addLineInput()" id="addLineButton" class="btn">Добавить строку</button>
             <button onclick="recalculateTacts()" class="btn">Пересчитать такты</button><br>
             <button onclick="parseStrings()" class="btn">Парсинг по настройкам</button><br>
-            <button onclick="copyResult()" class="btn">Копировать результат</button>
-            <div id="copyNotification" class="copy-notification"></div>
+            <div class="copy-container">
+                <button onclick="copyResult()" class="btn">Копировать результат</button>
+                <div id="copyNotification" class="copy-notification"></div>
+            </div>
         </div>
         <!-- Заменяем div на textarea -->
         <textarea id="output" readonly rows="15" cols="100"></textarea>
@@ -73,7 +75,6 @@
                 return;
             }
 
-            // Используем содержимое textarea напрямую
             navigator.clipboard.writeText(output.value)
                 .then(() => {
                     notification.textContent = 'Результат скопирован!';
@@ -89,7 +90,6 @@
                 .finally(() => {
                     setTimeout(() => {
                         notification.classList.remove('show');
-                        notification.style.backgroundColor = '#4CAF50';
                     }, 2000);
                 });
         }

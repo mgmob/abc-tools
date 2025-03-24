@@ -250,25 +250,24 @@ textarea {
 
 .copy-notification {
     position: absolute;
-    top: -35px;
-    /* Смещение вверх от кнопки */
+    top: -40px;
     left: 50%;
     transform: translateX(-50%);
     background: #4CAF50;
     color: white;
     padding: 8px 15px;
     border-radius: 4px;
-    white-space: nowrap;
     opacity: 0;
     transition: opacity 0.3s, top 0.3s;
+    white-space: nowrap;
     z-index: 1000;
     font-size: 0.9em;
     min-width: 180px;
     text-align: center;
+    pointer-events: none;
 }
 
 .copy-notification.show {
     opacity: 1;
-    top: -45px;
-    /* Конечная позиция над кнопкой */
+    top: -50px;
 }
