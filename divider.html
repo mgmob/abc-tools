@@ -72,22 +72,31 @@
                 return;
             }
 
-            // Копирование в буфер
-            navigator.clipboard.writeText(output.textContent)
-                .then(() => {
-                    notification.textContent = 'Результат скопирован!';
-                    notification.classList.add('show');
+            // Создаем временный div для обработки HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = output.innerHTML;
 
-                    setTimeout(() => {
-                        notification.classList.remove('show');
-                    }, 2000);
+            // Заменяем все <br> на символы новой строки
+            tempDiv.querySelectorAll('br').forEach(br => {
+                br.replaceWith('\n');
+            });
+
+            // Получаем текст с сохраненными переносами
+            const textToCopy = tempDiv.textContent || tempDiv.innerText;
+
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    notification.textContent = 'Результат скопирован с сохранением переносов!';
+                    notification.style.backgroundColor = '#4CAF50';
+                    notification.classList.add('show');
                 })
                 .catch(err => {
                     console.error('Ошибка копирования: ', err);
                     notification.textContent = 'Ошибка копирования!';
                     notification.style.backgroundColor = '#ff4444';
                     notification.classList.add('show');
-
+                })
+                .finally(() => {
                     setTimeout(() => {
                         notification.classList.remove('show');
                         notification.style.backgroundColor = '#4CAF50';
@@ -346,7 +355,7 @@
 
                 jsonData.forEach(obj => {
                     const elements = obj.subStrs.slice(currentTactIndex, currentTactIndex + actualTacts);
-                    outputDiv.innerHTML += `${obj.strTitle} ${elements.join('')}<br>`;
+                    outputDiv.textContent += `${obj.strTitle} ${elements.join('')}\n`;
                 });
 
                 currentTactIndex += actualTacts;
