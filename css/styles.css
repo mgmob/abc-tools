@@ -239,13 +239,33 @@ textarea {
     }
 }
 
+.copy-container {
+    position: relative;
+    display: inline-block;
+    margin: 10px;
+}
+
 .copy-notification {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
+    position: absolute;
+    top: -35px;
+    /* Смещение вверх от кнопки */
+    left: 50%;
+    transform: translateX(-50%);
     background: #4CAF50;
     color: white;
-    padding: 10px 20px;
+    padding: 8px 15px;
     border-radius: 4px;
-    display: none;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s, top 0.3s;
+    z-index: 1000;
+    font-size: 0.9em;
+    min-width: 180px;
+    text-align: center;
+}
+
+.copy-notification.show {
+    opacity: 1;
+    top: -45px;
+    /* Конечная позиция над кнопкой */
 }

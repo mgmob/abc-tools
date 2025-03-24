@@ -48,6 +48,7 @@
             <button onclick="recalculateTacts()" class="btn">Пересчитать такты</button><br>
             <button onclick="parseStrings()" class="btn">Парсинг по настройкам</button><br>
             <button onclick="copyResult()" class="btn">Копировать результат</button>
+            <div id="copyNotification" class="copy-notification"></div>
         </div>
         <div id="output"></div>
         <div id="report"></div>
@@ -64,28 +65,34 @@
 
         function copyResult() {
             const output = document.getElementById('output');
+            const notification = document.getElementById('copyNotification');
+
             if (!output.textContent.trim()) {
                 alert('Нет данных для копирования');
                 return;
             }
 
-            // Создаем временный textarea для копирования
-            const tempTextArea = document.createElement('textarea');
-            tempTextArea.value = output.textContent;
-            document.body.appendChild(tempTextArea);
-            tempTextArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempTextArea);
+            // Копирование в буфер
+            navigator.clipboard.writeText(output.textContent)
+                .then(() => {
+                    notification.textContent = 'Результат скопирован!';
+                    notification.classList.add('show');
 
-            // Показываем уведомление
-            const notification = document.createElement('div');
-            notification.className = 'copy-notification';
-            notification.textContent = 'Результат скопирован!';
-            document.body.appendChild(notification);
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Ошибка копирования: ', err);
+                    notification.textContent = 'Ошибка копирования!';
+                    notification.style.backgroundColor = '#ff4444';
+                    notification.classList.add('show');
 
-            setTimeout(() => {
-                notification.remove();
-            }, 2000);
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                        notification.style.backgroundColor = '#4CAF50';
+                    }, 2000);
+                });
         }
 
         function analyzeTacts() {
@@ -351,6 +358,6 @@
             });
         }
     </script>
-    <div id="copyNotification" class="copy-notification"></div>
+
 </body>
 </html>
