@@ -50,7 +50,8 @@
             <button onclick="copyResult()" class="btn">Копировать результат</button>
             <div id="copyNotification" class="copy-notification"></div>
         </div>
-        <div id="output"></div>
+        <!-- Заменяем div на textarea -->
+        <textarea id="output" readonly rows="15" cols="100"></textarea>
         <div id="report"></div>
     </main>
 
@@ -67,26 +68,15 @@
             const output = document.getElementById('output');
             const notification = document.getElementById('copyNotification');
 
-            if (!output.textContent.trim()) {
+            if (!output.value.trim()) {
                 alert('Нет данных для копирования');
                 return;
             }
 
-            // Создаем временный div для обработки HTML
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = output.innerHTML;
-
-            // Заменяем все <br> на символы новой строки
-            tempDiv.querySelectorAll('br').forEach(br => {
-                br.replaceWith('\n');
-            });
-
-            // Получаем текст с сохраненными переносами
-            const textToCopy = tempDiv.textContent || tempDiv.innerText;
-
-            navigator.clipboard.writeText(textToCopy)
+            // Используем содержимое textarea напрямую
+            navigator.clipboard.writeText(output.value)
                 .then(() => {
-                    notification.textContent = 'Результат скопирован с сохранением переносов!';
+                    notification.textContent = 'Результат скопирован!';
                     notification.style.backgroundColor = '#4CAF50';
                     notification.classList.add('show');
                 })
@@ -316,23 +306,20 @@
 
         function parseStrings() {
             const inputStrings = document.getElementById('inputStrings').value.split('\n');
-            const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = "";
+            const outputTextarea = document.getElementById('output');
+            outputTextarea.value = ""; // Очищаем textarea
             const reportDiv = document.getElementById('report');
             reportDiv.innerHTML = "<h4>Отчет:</h4>";
-
             const inputs = Array.from(document.querySelectorAll('#lineInputs input'));
             const tactsPerLine = inputs.map(input => parseInt(input.value) || 0);
-
             const jsonData = [];
+
             for (let i = 0; i < inputStrings.length; i++) {
                 const line = inputStrings[i].trim();
                 if (!line) continue;
-
                 const headerMatch = line.match(/\[.*?\]/);
                 const strTitle = headerMatch ? headerMatch[0] : "";
                 const strText = headerMatch ? line.replace(headerMatch[0], "") : line;
-
                 jsonData.push({
                     strNumber: i,
                     strTitle: strTitle,
@@ -355,7 +342,8 @@
 
                 jsonData.forEach(obj => {
                     const elements = obj.subStrs.slice(currentTactIndex, currentTactIndex + actualTacts);
-                    outputDiv.textContent += `${obj.strTitle} ${elements.join('')}\n`;
+                    // Добавляем текст в textarea с переносами строк
+                    outputTextarea.value += `${obj.strTitle} ${elements.join('')}\n`;
                 });
 
                 currentTactIndex += actualTacts;
@@ -365,6 +353,10 @@
             reportData.forEach((line, idx) => {
                 reportDiv.innerHTML += `<p>Строка ${idx + 1}: Ожидаемо: ${line.expected}, Фактически: ${line.actual}</p>`;
             });
+
+            // Добавьте в конец функции parseStrings()
+            outputTextarea.style.height = 'auto';
+            outputTextarea.style.height = outputTextarea.scrollHeight + 'px';
         }
     </script>
 

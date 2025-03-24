@@ -198,12 +198,15 @@ textarea {
 
 /* Выходные данные */
 #output {
+    width: 100%;
+    margin: 20px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     background: #2d2d2d;
     color: #ccc;
-    padding: 20px;
-    border-radius: 4px;
-    margin: 20px 0;
-    white-space: pre-wrap;
+    font-family: 'Roboto Mono', monospace;
+    resize: vertical;
 }
 
 /* Отчет */
