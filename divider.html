@@ -29,10 +29,10 @@
             <div class="instruction">
                 <h3>Инструкция:</h3>
                 <p>Введите ноты из многоголосой партитуры в формате:</p>
-                <pre>V:1 (далее все ноты голоса 1)
-V:2 (далее все ноты голоса 2)
+                <pre>[V:1] (далее все ноты голоса 1)
+[V:2] (далее все ноты голоса 2)
 ...
-V:N (далее все ноты голоса N)</pre>
+[V:N] (далее все ноты голоса N)</pre>
                 <p>Важно: Не включайте подтекстовку (w:) и заголовок партитуры!</p>
             </div>
         </section>
@@ -47,6 +47,7 @@ V:N (далее все ноты голоса N)</pre>
             <button onclick="addLineInput()" id="addLineButton" class="btn">Добавить строку</button>
             <button onclick="recalculateTacts()" class="btn">Пересчитать такты</button><br>
             <button onclick="parseStrings()" class="btn">Парсинг по настройкам</button><br>
+            <button onclick="copyResult()" class="btn">Копировать результат</button>
         </div>
         <div id="output"></div>
         <div id="report"></div>
@@ -60,6 +61,32 @@ V:N (далее все ноты голоса N)</pre>
         // Здесь вставьте ваш существующий JavaScript код из файла
         let totalTactsPerVoice = [];
         let totalLines = 0;
+
+        function copyResult() {
+            const output = document.getElementById('output');
+            if (!output.textContent.trim()) {
+                alert('Нет данных для копирования');
+                return;
+            }
+
+            // Создаем временный textarea для копирования
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = output.textContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            // Показываем уведомление
+            const notification = document.createElement('div');
+            notification.className = 'copy-notification';
+            notification.textContent = 'Результат скопирован!';
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 2000);
+        }
 
         function analyzeTacts() {
             const inputStrings = document.getElementById('inputStrings').value.split('\n');
@@ -324,5 +351,6 @@ V:N (далее все ноты голоса N)</pre>
             });
         }
     </script>
+    <div id="copyNotification" class="copy-notification"></div>
 </body>
 </html>

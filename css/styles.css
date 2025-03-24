@@ -238,3 +238,14 @@ textarea {
         overflow-x: auto;
     }
 }
+
+.copy-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: none;
+}
