@@ -246,6 +246,7 @@ textarea {
     position: relative;
     display: inline-block;
     margin: 10px;
+    margin-top: 15px;
 }
 
 .copy-notification {
@@ -270,4 +271,13 @@ textarea {
 .copy-notification.show {
     opacity: 1;
     top: -50px;
+}
+
+.result-block {
+    margin-top: 20px;
+}
+
+.result-block .form-label {
+    display: block;
+    margin-bottom: 8px;
 }

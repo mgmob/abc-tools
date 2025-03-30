@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ABC Tools - Разделение партитуры</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1>ABC Tools</h1>
+        <a href="/" class="back-link">← Назад на главную</a>
+    </header>
+
+    <main class="content-wrapper">
+        <section class="intro-section">
+            <h2>Разделение партитуры на голоса</h2>
+            <p class="description">
+                Утилита для разделения двух партий, записанных в одном голосе в партитуре, в два разных голоса.
+            </p>
+
+            <div class="instruction">
+                <h3>Пример:</h3>
+                <p>Входные данные:</p>
+                <pre>[Ac]2 ([ce][df]) [ce] [Bd] [Ac] [^GB] [Ac]2 | </pre>
+                <p>Выходные данные:</p>
+                <pre>V:1 A2 (cd) c B A ^G A2 |
+V:2 c2 (ef) e d c B c2 | </pre>
+            </div>
+        </section>
+
+        <div class="tool-container">
+            <label for="inputABC" class="form-label">Входные данные:</label>
+            <textarea id="inputABC" class="code-input" rows="5" placeholder="Введите ABC-ноты"></textarea>
+
+            <button onclick="parseABC()" class="btn">Разделить голоса</button>
+            <div class="result-block">
+                <label for="outputABC" class="form-label mt-3">Результат:</label>
+                <textarea id="outputABC" class="code-output" rows="5" readonly></textarea>
+
+                <div class="copy-container">
+                    <button onclick="copyToClipboard()" class="btn btn-secondary">Копировать результат</button>
+                    <div id="copyNotification" class="copy-notification"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; mgmob 2025</p>
+    </footer>
+
+    <script>
+        async function copyToClipboard() {
+            const output = document.getElementById('outputABC');
+            const notification = document.getElementById('copyNotification');
+
+            try {
+                await navigator.clipboard.writeText(output.value);
+                notification.textContent = 'Результат скопирован!';
+                notification.classList.add('show');
+                setTimeout(() => notification.classList.remove('show'), 2000);
+            } catch (err) {
+                console.error('Ошибка копирования:', err);
+                notification.textContent = 'Ошибка!';
+                notification.style.backgroundColor = '#ff4444';
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    notification.style.backgroundColor = '#4CAF50';
+                }, 2000);
+            }
+        }
+
+        function parseABC() {
+            const input = document.getElementById('inputABC').value;
+            const [voice1, voice2] = splitVoices(input);
+            const output = `V:1 ${voice1}\nV:2 ${voice2}`;
+            document.getElementById('outputABC').value = output;
+        }
+
+        // Остальной JavaScript код парсера остается без изменений
+        function splitVoices(input) {
+            let voice1 = [];
+            let voice2 = [];
+            const tokenRegex = /(\[[^\]]+\]\d*)|(\s+)|(\S)/g;
+            let match;
+
+            while ((match = tokenRegex.exec(input)) !== null) {
+                if (match[1]) {
+                    const [inner, outerDur] = parseBracketGroup(match[1]);
+                    const notes = parseNotes(inner);
+
+                    if (notes.length >= 2) {
+                        voice1.push(processNote(notes[0], outerDur));
+                        voice2.push(processNote(notes[1], outerDur));
+                    }
+                } else if (match[2]) {
+                    voice1.push(match[2]);
+                    voice2.push(match[2]);
+                } else if (match[3]) {
+                    voice1.push(match[3]);
+                    voice2.push(match[3]);
+                }
+            }
+
+            return [voice1.join(''), voice2.join('')];
+        }
+
+        function parseBracketGroup(group) {
+            const match = group.match(/^\[(.*?)\](\d*)$/);
+            return [match[1], match[2]];
+        }
+
+        function parseNotes(inner) {
+            const noteRegex = /([=^_]?[A-Ga-g][',]?)(\d*)/g;
+            let notes = [];
+            let match;
+
+            while ((match = noteRegex.exec(inner)) !== null) {
+                notes.push(match[1] + match[2]);
+            }
+
+            return notes;
+        }
+
+        function processNote(note, outerDur) {
+            const [base, innerDur] = note.match(/^([^\d]*)(\d*)$/).slice(1);
+            return base + (innerDur || outerDur);
+        }
+    </script>
+</body>
+</html>
