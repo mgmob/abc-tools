@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор промптов для ИИ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 25px 0;
+            background: linear-gradient(90deg, #2c3e50, #4a6491);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #e0e0e0;
+        }
+
+        .panel {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .left-panel {
+            flex: 1;
+            background-color: #f8f9fa;
+        }
+
+        .center-panel {
+            flex: 1.5;
+            background-color: #ffffff;
+        }
+
+        .right-panel {
+            flex: 2;
+            background-color: #f0f5ff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4a6491;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+        }
+
+        .panel-title i {
+            margin-right: 10px;
+            color: #4a6491;
+        }
+
+        /* Древовидное меню */
+        .tree {
+            list-style: none;
+            padding-left: 15px;
+        }
+
+        .tree ul {
+            list-style: none;
+            padding-left: 25px;
+        }
+
+        .tree li {
+            margin: 8px 0;
+            position: relative;
+        }
+
+        .tree li:before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: -15px;
+            width: 10px;
+            height: 1px;
+            background: #6c757d;
+        }
+
+        .tree li:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -15px;
+            width: 1px;
+            height: 100%;
+            background: #6c757d;
+        }
+
+        .tree li:last-child:after {
+            height: 10px;
+        }
+
+        .tree-category {
+            font-weight: bold;
+            color: #2c3e50;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .tree-category:hover {
+            background-color: #e9ecef;
+        }
+
+        .tree-category i {
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+
+        .tree-category.collapsed i {
+            transform: rotate(-90deg);
+        }
+
+        .prompt-item {
+            padding: 8px 15px 8px 35px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #495057;
+            position: relative;
+        }
+
+        .prompt-item:before {
+            content: "→";
+            position: absolute;
+            left: 15px;
+            color: #4a6491;
+        }
+
+        .prompt-item:hover {
+            background-color: #e9ecef;
+            color: #2c3e50;
+        }
+
+        .prompt-item.selected {
+            background-color: #d1e7ff;
+            color: #0056b3;
+            font-weight: 500;
+        }
+
+        /* Центральная панель */
+        .field-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s;
+        }
+
+        .field-group:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .field-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .field-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s;
+        }
+
+        .field-input:focus {
+            border-color: #4a6491;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.2);
+        }
+
+        .field-combobox {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1rem;
+            background-color: white;
+        }
+
+        /* Правая панель */
+        .prompt-display {
+            flex: 1;
+            padding: 25px;
+            background-color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .field-placeholder {
+            background-color: #fff9c4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 500;
+            border: 1px dashed #ffd54f;
+        }
+
+        .field-filled {
+            background-color: #c8e6c9;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 500;
+            border: 1px solid #81c784;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 0;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #4a6491, #2c3e50);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #3a547e, #1c2e40);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary i {
+            margin-right: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.error {
+            background-color: #f44336;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #ced4da;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(74, 100, 145, 0.2);
+            border-radius: 50%;
+            border-top: 5px solid #4a6491;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .panel {
+                height: auto;
+                min-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Генератор промптов для ИИ</h1>
+        <p>Создавайте точные и эффективные промпты для ИИ с помощью нашего инструмента. Выбирайте шаблоны, заполняйте параметры и копируйте готовый результат.</p>
+    </div>
+
+    <div class="container">
+        <!-- Левая панель - Дерево промптов -->
+        <div class="panel left-panel">
+            <h2 class="panel-title"><i class="fas fa-folder-tree"></i> Категории промптов</h2>
+            <div id="prompts-tree" class="tree">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Центральная панель - Поля для уточнения -->
+        <div class="panel center-panel">
+            <h2 class="panel-title"><i class="fas fa-edit"></i> Параметры промпта</h2>
+            <div id="fields-container"></div>
+
+            <div id="empty-fields" class="empty-state">
+                <i class="fas fa-mouse-pointer"></i>
+                <h3>Выберите промпт</h3>
+                <p>Выберите шаблон промпта из левой панели, чтобы начать работу</p>
+            </div>
+        </div>
+
+        <!-- Правая панель - Генерация промпта -->
+        <div class="panel right-panel">
+            <h2 class="panel-title"><i class="fas fa-file-alt"></i> Результат</h2>
+            <div id="prompt-display" class="prompt-display">
+                <div class="empty-state">
+                    <i class="fas fa-arrow-left"></i>
+                    <h3>Шаблон не выбран</h3>
+                    <p>Выберите промпт из списка слева для генерации</p>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="copy-btn" class="btn btn-primary"><i class="fas fa-copy"></i> Скопировать промпт</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление -->
+    <div id="notification" class="notification">Промпт скопирован в буфер обмена!</div>
+
+    <script>
+        // Текущее состояние приложения
+        let state = {
+            selectedPrompt: null,
+            fieldValues: {},
+            promptsData: null,
+            fieldsData: null
+        };
+
+        // Инициализация приложения
+        async function init() {
+            try {
+                // Загрузка справочников из внешних файлов
+                const [promptsResponse, fieldsResponse] = await Promise.all([
+                    fetch('prompts.json'),
+                    fetch('fields.json')
+                ]);
+
+                if (!promptsResponse.ok) throw new Error('Не удалось загрузить справочник промптов');
+                if (!fieldsResponse.ok) throw new Error('Не удалось загрузить справочник полей');
+
+                state.promptsData = await promptsResponse.json();
+                state.fieldsData = await fieldsResponse.json();
+
+                renderPromptsTree();
+                setupEventListeners();
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                showNotification('Ошибка загрузки данных: ' + error.message, 'error');
+            }
+        }
+
+        // Рендеринг дерева промптов
+        function renderPromptsTree() {
+            const treeContainer = document.getElementById('prompts-tree');
+            treeContainer.innerHTML = '';
+            renderTreeItems(state.promptsData, treeContainer);
+        }
+
+        // Рекурсивный рендеринг элементов дерева
+        function renderTreeItems(items, container, level = 0) {
+            const ul = document.createElement('ul');
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+
+                if (item.children) {
+                    // Элемент категории
+                    const category = document.createElement('div');
+                    category.className = 'tree-category';
+                    category.innerHTML = `<i class="fas fa-caret-down"></i> ${item.name}`;
+
+                    category.addEventListener('click', () => {
+                        category.classList.toggle('collapsed');
+                        const childList = li.querySelector('ul');
+                        if (childList) {
+                            childList.style.display = childList.style.display === 'none' ? 'block' : 'none';
+                        }
+                    });
+
+                    li.appendChild(category);
+                    const childContainer = document.createElement('div');
+                    renderTreeItems(item.children, childContainer, level + 1);
+                    li.appendChild(childContainer);
+                } else if (item.prompts) {
+                    // Элемент подкатегории с промптами
+                    const subcategory = document.createElement('div');
+                    subcategory.className = 'tree-category';
+                    subcategory.innerHTML = `<i class="fas fa-caret-down"></i> ${item.name}`;
+
+                    subcategory.addEventListener('click', () => {
+                        subcategory.classList.toggle('collapsed');
+                        const childList = li.querySelector('ul');
+                        if (childList) {
+                            childList.style.display = childList.style.display === 'none' ? 'block' : 'none';
+                        }
+                    });
+
+                    li.appendChild(subcategory);
+                    const childContainer = document.createElement('div');
+                    renderTreeItems(item.prompts, childContainer, level + 1);
+                    li.appendChild(childContainer);
+                } else {
+                    // Элемент промпта
+                    const prompt = document.createElement('div');
+                    prompt.className = 'prompt-item';
+                    prompt.textContent = item.name;
+                    prompt.dataset.id = item.id;
+                    prompt.dataset.text = item.text;
+
+                    prompt.addEventListener('click', () => {
+                        // Убрать выделение с других промптов
+                        document.querySelectorAll('.prompt-item').forEach(el => {
+                            el.classList.remove('selected');
+                        });
+
+                        // Выделить текущий промпт
+                        prompt.classList.add('selected');
+
+                        // Обработка выбора промпта
+                        handlePromptSelect(item.id, item.text);
+                    });
+
+                    li.appendChild(prompt);
+                }
+
+                ul.appendChild(li);
+            });
+
+            container.appendChild(ul);
+        }
+
+        // Обработка выбора промпта
+        function handlePromptSelect(promptId, promptText) {
+            state.selectedPrompt = { id: promptId, text: promptText };
+            state.fieldValues = {};
+
+            // Показать/скрыть пустое состояние
+            document.getElementById('empty-fields').style.display = 'none';
+
+            // Очистить контейнер полей
+            const fieldsContainer = document.getElementById('fields-container');
+            fieldsContainer.innerHTML = '';
+
+            // Извлечь поля из текста промпта
+            const fieldNames = extractFieldNames(promptText);
+
+            // Создать элементы для каждого поля
+            fieldNames.forEach(fieldName => {
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'field-group';
+
+                const label = document.createElement('label');
+                label.className = 'field-label';
+                label.textContent = fieldName;
+                fieldGroup.appendChild(label);
+
+                const textarea = document.createElement('textarea');
+                textarea.className = 'field-input';
+                textarea.placeholder = `Введите значение для "${fieldName}"...`;
+                textarea.dataset.field = fieldName;
+                fieldGroup.appendChild(textarea);
+
+                // Добавление обработчика изменения текста
+                textarea.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    state.fieldValues[fieldName] = value;
+                    updatePromptDisplay();
+                });
+
+                // Добавление комбобокса, если есть варианты для поля
+                if (state.fieldsData && state.fieldsData[fieldName]) {
+                    const select = document.createElement('select');
+                    select.className = 'field-combobox';
+
+                    // Пустой вариант
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'Выберите из списка...';
+                    select.appendChild(emptyOption);
+
+                    // Варианты из справочника
+                    state.fieldsData[fieldName].forEach(option => {
+                        const optionEl = document.createElement('option');
+                        optionEl.value = option.long;
+                        optionEl.textContent = option.short;
+                        select.appendChild(optionEl);
+                    });
+
+                    // Обработчик выбора значения
+                    select.addEventListener('change', (e) => {
+                        const value = e.target.value;
+                        if (value) {
+                            textarea.value = value;
+                            state.fieldValues[fieldName] = value;
+                            updatePromptDisplay();
+                        }
+                    });
+
+                    fieldGroup.appendChild(select);
+                }
+
+                fieldsContainer.appendChild(fieldGroup);
+            });
+
+            // Обновить отображение промпта
+            updatePromptDisplay();
+        }
+
+        // Извлечение имен полей из текста промпта
+        function extractFieldNames(promptText) {
+            const regex = /\[([^\]]+)\]/g;
+            const fields = [];
+            let match;
+
+            while ((match = regex.exec(promptText)) !== null) {
+                fields.push(match[1]);
+            }
+
+            // Удаление дубликатов
+            return [...new Set(fields)];
+        }
+
+        // Обновление отображения промпта
+        function updatePromptDisplay() {
+            if (!state.selectedPrompt) return;
+
+            let displayText = state.selectedPrompt.text;
+            const fieldNames = extractFieldNames(displayText);
+
+            // Замена полей на оформленные span
+            fieldNames.forEach(fieldName => {
+                const value = state.fieldValues[fieldName] || '';
+                const replacement = value
+                    ? `<span class="field-filled" data-field="${fieldName}">${value}</span>`
+                    : `<span class="field-placeholder" data-field="${fieldName}">[${fieldName}]</span>`;
+
+                displayText = displayText.replace(`[${fieldName}]`, replacement);
+            });
+
+            document.getElementById('prompt-display').innerHTML = displayText;
+        }
+
+        // Копирование промпта в буфер обмена
+        function copyPromptToClipboard() {
+            if (!state.selectedPrompt) {
+                showNotification('Сначала выберите промпт!', 'error');
+                return;
+            }
+
+            let promptText = state.selectedPrompt.text;
+            const fieldNames = extractFieldNames(promptText);
+
+            // Замена полей на их значения
+            fieldNames.forEach(fieldName => {
+                const value = state.fieldValues[fieldName] || '';
+                promptText = promptText.replace(`[${fieldName}]`, value);
+            });
+
+            // Копирование в буфер обмена
+            navigator.clipboard.writeText(promptText)
+                .then(() => {
+                    showNotification('Промпт скопирован в буфер обмена!');
+                })
+                .catch(err => {
+                    showNotification('Ошибка копирования: ' + err, 'error');
+                });
+        }
+
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type === 'error' ? 'error' : ''}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            document.getElementById('copy-btn').addEventListener('click', copyPromptToClipboard);
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
