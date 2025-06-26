@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор справочника промптов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4a6491;
+            --primary-dark: #2c3e50;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header header"
+                "tree editor"
+                "actions actions";
+            height: calc(100vh - 40px);
+        }
+
+        .header {
+            grid-area: header;
+            text-align: center;
+            padding: 25px 0;
+            background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #e0e0e0;
+        }
+
+        .tree-panel {
+            grid-area: tree;
+            background-color: var(--light);
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-panel {
+            grid-area: editor;
+            background-color: #ffffff;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .actions-panel {
+            grid-area: actions;
+            background-color: #f0f5ff;
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+        }
+
+        .panel-title i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+
+        /* Древовидное меню */
+        .tree {
+            list-style: none;
+            padding-left: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tree ul {
+            list-style: none;
+            padding-left: 25px;
+        }
+
+        .tree li {
+            margin: 8px 0;
+            position: relative;
+        }
+
+        .tree li:before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: -15px;
+            width: 10px;
+            height: 1px;
+            background: var(--secondary);
+        }
+
+        .tree li:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -15px;
+            width: 1px;
+            height: 100%;
+            background: var(--secondary);
+        }
+
+        .tree li:last-child:after {
+            height: 10px;
+        }
+
+        .tree-category {
+            font-weight: bold;
+            color: var(--primary-dark);
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #e9ecef;
+            margin-bottom: 5px;
+        }
+
+        .tree-category:hover {
+            background-color: #d1e7ff;
+        }
+
+        .tree-category .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tree-category i {
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+
+        .tree-category.collapsed i.fa-caret-down {
+            transform: rotate(-90deg);
+        }
+
+        .prompt-item {
+            padding: 8px 15px 8px 35px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--dark);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f8f9fa;
+            margin-bottom: 5px;
+        }
+
+        .prompt-item:before {
+            content: "→";
+            position: absolute;
+            left: 15px;
+            color: var(--primary);
+        }
+
+        .prompt-item:hover {
+            background-color: #e9ecef;
+            color: var(--primary-dark);
+        }
+
+        .prompt-item.selected {
+            background-color: #d1e7ff;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .prompt-item .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Форма редактирования */
+        .editor-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.2);
+        }
+
+        textarea.form-control {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #3a547e, #1c2e40);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, var(--success), #1e7e34);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(to right, #218838, #19692c);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(to right, var(--danger), #bd2130);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(to right, #c82333, #a71e2d);
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(to right, var(--warning), #e0a800);
+            color: var(--dark);
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(to right, #e0a800, #d39e00);
+            transform: translateY(-2px);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.875rem;
+        }
+
+        .tree-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: var(--success);
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.error {
+            background-color: var(--danger);
+        }
+
+        .notification.warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #6c757d;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #ced4da;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .node-id {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title h2 {
+            margin-bottom: 0;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .children-container {
+            border-left: 2px dashed #ced4da;
+            padding-left: 20px;
+            margin-left: 10px;
+            margin-top: 10px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(74, 100, 145, 0.2);
+            border-radius: 50%;
+            border-top: 5px solid #4a6491;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "header"
+                    "tree"
+                    "editor"
+                    "actions";
+                height: auto;
+            }
+
+            .tree-panel {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                height: 40vh;
+            }
+
+            .editor-panel {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-edit"></i> Редактор справочника промптов</h1>
+            <p>Управляйте структурой классификатора и редактируйте тексты промптов</p>
+        </div>
+
+        <!-- Левая панель - Дерево промптов -->
+        <div class="tree-panel">
+            <div class="section-title">
+                <h2 class="panel-title"><i class="fas fa-folder-tree"></i> Структура справочника</h2>
+                <button class="btn btn-success btn-sm" id="add-category-btn"><i class="fas fa-plus"></i> Добавить категорию</button>
+            </div>
+            <div id="prompts-tree" class="tree">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка справочника...</p>
+                </div>
+            </div>
+            <div class="tree-actions">
+                <button class="btn btn-primary" id="expand-all-btn"><i class="fas fa-expand"></i> Развернуть все</button>
+                <button class="btn btn-warning" id="collapse-all-btn"><i class="fas fa-compress"></i> Свернуть все</button>
+            </div>
+        </div>
+
+        <!-- Правая панель - Редактор -->
+        <div class="editor-panel">
+            <div id="editor-container">
+                <div class="empty-state" id="empty-editor">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <h3>Выберите элемент</h3>
+                    <p>Выберите категорию или промпт из дерева слева для редактирования</p>
+                </div>
+
+                <!-- Форма редактирования категории -->
+                <div class="editor-form" id="category-editor" style="display: none;">
+                    <h2 class="panel-title"><i class="fas fa-folder"></i> Редактирование категории</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="category-id">ID категории</label>
+                            <input type="text" id="category-id" class="form-control" placeholder="Уникальный идентификатор">
+                        </div>
+                        <div class="form-group">
+                            <label for="category-name">Название категории</label>
+                            <input type="text" id="category-name" class="form-control" placeholder="Введите название">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Дочерние элементы:</label>
+                        <div id="category-children" class="children-container">
+                            <div class="empty-state" style="padding: 20px;">
+                                <i class="fas fa-inbox"></i>
+                                <p>Нет дочерних элементов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" id="save-category-btn"><i class="fas fa-save"></i> Сохранить изменения</button>
+                        <button class="btn btn-danger" id="delete-category-btn"><i class="fas fa-trash"></i> Удалить категорию</button>
+                        <button class="btn btn-primary" id="add-subcategory-btn"><i class="fas fa-folder-plus"></i> Добавить подкатегорию</button>
+                        <button class="btn btn-primary" id="add-prompt-btn"><i class="fas fa-plus"></i> Добавить промпт</button>
+                    </div>
+                </div>
+
+                <!-- Форма редактирования промпта -->
+                <div class="editor-form" id="prompt-editor" style="display: none;">
+                    <h2 class="panel-title"><i class="fas fa-file-alt"></i> Редактирование промпта</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prompt-id">ID промпта</label>
+                            <input type="text" id="prompt-id" class="form-control" placeholder="Уникальный идентификатор">
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-name">Название промпта</label>
+                            <input type="text" id="prompt-name" class="form-control" placeholder="Введите название">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prompt-text">Текст промпта</label>
+                        <textarea id="prompt-text" class="form-control" placeholder="Введите текст промпта..."></textarea>
+                        <small class="form-text text-muted">Используйте [квадратные скобки] для обозначения параметров</small>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" id="save-prompt-btn"><i class="fas fa-save"></i> Сохранить промпт</button>
+                        <button class="btn btn-danger" id="delete-prompt-btn"><i class="fas fa-trash"></i> Удалить промпт</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель действий -->
+        <div class="actions-panel">
+            <div>
+                <button class="btn btn-primary" id="download-btn"><i class="fas fa-download"></i> Скачать prompts.json</button>
+            </div>
+            <div>
+                <button class="btn btn-success" id="save-all-btn"><i class="fas fa-save"></i> Сохранить все изменения</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление -->
+    <div id="notification" class="notification">Изменения успешно сохранены!</div>
+
+    <script>
+        // Данные справочника промптов
+        let promptsData = [];
+
+        // Текущее состояние приложения
+        let state = {
+            selectedNode: null,
+            expandedNodes: {}
+        };
+
+        // Инициализация приложения
+        async function init() {
+            try {
+                // Загрузка справочника из файла
+                const response = await fetch('prompts.json');
+                if (!response.ok) {
+                    throw new Error('Файл не найден или ошибка сервера');
+                }
+                promptsData = await response.json();
+
+                if (!Array.isArray(promptsData)) {
+                    throw new Error('Некорректный формат файла');
+                }
+
+                renderPromptsTree();
+                setupEventListeners();
+            } catch (error) {
+                console.error('Ошибка загрузки справочника:', error);
+
+                // Создаем базовую структуру, если файл не найден
+                promptsData = [
+                    {
+                        id: "compositor",
+                        name: "КОМПОЗИТОР",
+                        children: [
+                            {
+                                id: "components",
+                                name: "Базовые компоненты",
+                                prompts: [
+                                    {
+                                        id: "context",
+                                        name: "Контекстный компонент",
+                                        text: "Предоставь контекст для задачи: [Опишите текущую ситуацию или проблему]. Учти следующие аспекты: [Перечислите ключевые аспекты контекста]. Основная цель контекста: [Сформулируйте цель предоставления этого контекста]."
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ];
+
+                renderPromptsTree();
+                setupEventListeners();
+
+                showNotification('Загружены демонстрационные данные', 'warning');
+            }
+        }
+
+        // Рендеринг дерева промптов
+        function renderPromptsTree() {
+            const treeContainer = document.getElementById('prompts-tree');
+            treeContainer.innerHTML = '';
+
+            if (promptsData.length === 0) {
+                treeContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Справочник пуст</h3>
+                        <p>Добавьте первую категорию для начала работы</p>
+                    </div>
+                `;
+                return;
+            }
+
+            renderTreeItems(promptsData, treeContainer);
+        }
+
+        // Рекурсивный рендеринг элементов дерева
+        function renderTreeItems(items, container, parentId = null) {
+            const ul = document.createElement('ul');
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.dataset.id = item.id;
+                li.dataset.parent = parentId || '';
+
+                if (item.children || item.prompts) {
+                    // Элемент категории
+                    const category = document.createElement('div');
+                    category.className = 'tree-category';
+                    category.innerHTML = `
+                        <div>
+                            <i class="fas fa-caret-down"></i>
+                            ${item.name}
+                            <span class="node-id">${item.id}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-sm btn-primary" data-action="add-child" title="Добавить подкатегорию"><i class="fas fa-folder-plus"></i></button>
+                            <button class="btn btn-sm btn-primary" data-action="add-prompt" title="Добавить промпт"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-sm btn-danger" data-action="delete" title="Удалить"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+
+                    // Обработчик клика по категории
+                    category.addEventListener('click', (e) => {
+                        if (e.target.closest('button')) return;
+
+                        // Переключаем состояние развернутости
+                        state.expandedNodes[item.id] = !state.expandedNodes[item.id];
+
+                        // Обновляем только этот узел
+                        refreshTreeNode(item, li);
+                    });
+
+                    li.appendChild(category);
+
+                    // Контейнер для дочерних элементов
+                    const childContainer = document.createElement('div');
+                    childContainer.className = 'children-container';
+                    childContainer.style.display = state.expandedNodes[item.id] ? 'block' : 'none';
+
+                    // Добавляем дочерние элементы
+                    let hasChildren = false;
+
+                    if (item.children && item.children.length > 0) {
+                        renderTreeItems(item.children, childContainer, item.id);
+                        hasChildren = true;
+                    }
+
+                    if (item.prompts && item.prompts.length > 0) {
+                        renderTreeItems(item.prompts, childContainer, item.id);
+                        hasChildren = true;
+                    }
+
+                    // Если нет дочерних элементов
+                    if (!hasChildren) {
+                        childContainer.innerHTML = `
+                            <div class="empty-state" style="padding: 10px;">
+                                <i class="fas fa-inbox"></i>
+                                <p>Нет элементов</p>
+                            </div>
+                        `;
+                    }
+
+                    li.appendChild(childContainer);
+
+                    // Обработчик выбора категории
+                    category.addEventListener('click', (e) => {
+                        if (e.target.closest('button')) return;
+                        handleSelectItem(item, 'category');
+                    });
+                } else {
+                    // Элемент промпта
+                    const prompt = document.createElement('div');
+                    prompt.className = 'prompt-item';
+                    prompt.innerHTML = `
+                        <div>
+                            ${item.name}
+                            <span class="node-id">${item.id}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-sm btn-danger" data-action="delete" title="Удалить"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+
+                    prompt.addEventListener('click', (e) => {
+                        if (e.target.closest('button')) return;
+                        handleSelectItem(item, 'prompt');
+                    });
+
+                    li.appendChild(prompt);
+                }
+
+                // Обработчики для кнопок действий
+                const actionButtons = li.querySelectorAll('button[data-action]');
+                actionButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const action = button.dataset.action;
+                        handleTreeAction(action, item, li);
+                    });
+                });
+
+                ul.appendChild(li);
+            });
+
+            container.appendChild(ul);
+        }
+
+        // Обновление конкретного узла дерева
+        function refreshTreeNode(item, li) {
+            // Сохраняем родительский контейнер
+            const parentContainer = li.parentNode;
+
+            // Создаем новый элемент
+            const newLi = document.createElement('li');
+            newLi.dataset.id = item.id;
+            newLi.dataset.parent = li.dataset.parent || '';
+
+            if (item.children || item.prompts) {
+                // Категория
+                const category = document.createElement('div');
+                category.className = 'tree-category';
+                category.innerHTML = `
+                    <div>
+                        <i class="fas fa-caret-down"></i>
+                        ${item.name}
+                        <span class="node-id">${item.id}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-sm btn-primary" data-action="add-child" title="Добавить подкатегорию"><i class="fas fa-folder-plus"></i></button>
+                        <button class="btn btn-sm btn-primary" data-action="add-prompt" title="Добавить промпт"><i class="fas fa-plus"></i></button>
+                        <button class="btn btn-sm btn-danger" data-action="delete" title="Удалить"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+
+                // Обработчик клика по категории
+                category.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+
+                    // Переключаем состояние развернутости
+                    state.expandedNodes[item.id] = !state.expandedNodes[item.id];
+
+                    // Обновляем только этот узел
+                    refreshTreeNode(item, newLi);
+                });
+
+                newLi.appendChild(category);
+
+                // Контейнер для дочерних элементов
+                const childContainer = document.createElement('div');
+                childContainer.className = 'children-container';
+                childContainer.style.display = state.expandedNodes[item.id] ? 'block' : 'none';
+
+                // Добавляем дочерние элементы
+                let hasChildren = false;
+
+                if (item.children && item.children.length > 0) {
+                    renderTreeItems(item.children, childContainer, item.id);
+                    hasChildren = true;
+                }
+
+                if (item.prompts && item.prompts.length > 0) {
+                    renderTreeItems(item.prompts, childContainer, item.id);
+                    hasChildren = true;
+                }
+
+                // Если нет дочерних элементов
+                if (!hasChildren) {
+                    childContainer.innerHTML = `
+                        <div class="empty-state" style="padding: 10px;">
+                            <i class="fas fa-inbox"></i>
+                            <p>Нет элементов</p>
+                        </div>
+                    `;
+                }
+
+                newLi.appendChild(childContainer);
+
+                // Обработчик выбора категории
+                category.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    handleSelectItem(item, 'category');
+                });
+            } else {
+                // Промпт
+                const prompt = document.createElement('div');
+                prompt.className = 'prompt-item';
+                prompt.innerHTML = `
+                    <div>
+                        ${item.name}
+                        <span class="node-id">${item.id}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-sm btn-danger" data-action="delete" title="Удалить"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+
+                prompt.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    handleSelectItem(item, 'prompt');
+                });
+
+                newLi.appendChild(prompt);
+            }
+
+            // Заменяем старый элемент новым
+            parentContainer.replaceChild(newLi, li);
+
+            // Восстанавливаем обработчики
+            const actionButtons = newLi.querySelectorAll('button[data-action]');
+            actionButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = button.dataset.action;
+                    handleTreeAction(action, item, newLi);
+                });
+            });
+        }
+
+        // Обработка выбора элемента
+        function handleSelectItem(item, type) {
+            state.selectedNode = item;
+
+            // Скрыть пустое состояние
+            document.getElementById('empty-editor').style.display = 'none';
+
+            // Показать соответствующий редактор
+            if (type === 'category') {
+                document.getElementById('category-editor').style.display = 'block';
+                document.getElementById('prompt-editor').style.display = 'none';
+
+                // Заполнить форму данными
+                document.getElementById('category-id').value = item.id;
+                document.getElementById('category-name').value = item.name;
+
+                // Обновить список дочерних элементов
+                updateChildrenList(item);
+            } else if (type === 'prompt') {
+                document.getElementById('category-editor').style.display = 'none';
+                document.getElementById('prompt-editor').style.display = 'block';
+
+                // Заполнить форму данными
+                document.getElementById('prompt-id').value = item.id;
+                document.getElementById('prompt-name').value = item.name;
+                document.getElementById('prompt-text').value = item.text;
+            }
+
+            // Выделяем выбранный элемент
+            document.querySelectorAll('.prompt-item, .tree-category').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            const element = document.querySelector(`[data-id="${item.id}"]`);
+            if (element) {
+                if (type === 'category') {
+                    element.querySelector('.tree-category').classList.add('selected');
+                } else {
+                    element.querySelector('.prompt-item').classList.add('selected');
+                }
+            }
+        }
+
+        // Обновление списка дочерних элементов
+        function updateChildrenList(category) {
+            const container = document.getElementById('category-children');
+            container.innerHTML = '';
+
+            if ((!category.children || category.children.length === 0) &&
+                (!category.prompts || category.prompts.length === 0)) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fas fa-inbox"></i>
+                        <p>Нет дочерних элементов</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            ul.className = 'tree';
+
+            if (category.children && category.children.length > 0) {
+                category.children.forEach(child => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="prompt-item">
+                            <div>
+                                <i class="fas fa-folder"></i> ${child.name}
+                                <span class="node-id">${child.id}</span>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-danger" data-action="delete-child" title="Удалить"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Обработчик удаления
+                    li.querySelector('button').addEventListener('click', () => {
+                        deleteChildItem(category, child, 'children');
+                    });
+
+                    ul.appendChild(li);
+                });
+            }
+
+            if (category.prompts && category.prompts.length > 0) {
+                category.prompts.forEach(prompt => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="prompt-item">
+                            <div>
+                                <i class="fas fa-file-alt"></i> ${prompt.name}
+                                <span class="node-id">${prompt.id}</span>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-danger" data-action="delete-child" title="Удалить"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Обработчик удаления
+                    li.querySelector('button').addEventListener('click', () => {
+                        deleteChildItem(category, prompt, 'prompts');
+                    });
+
+                    ul.appendChild(li);
+                });
+            }
+
+            container.appendChild(ul);
+        }
+
+        // Обработка действий с деревом
+        function handleTreeAction(action, item, element) {
+            switch(action) {
+                case 'add-child':
+                    addNewCategory(item);
+                    break;
+                case 'add-prompt':
+                    addNewPrompt(item);
+                    break;
+                case 'delete':
+                    deleteItem(item, element);
+                    break;
+            }
+        }
+
+        // Добавление новой категории
+        function addNewCategory(parent) {
+            const newId = `category_${Date.now()}`;
+            const newCategory = {
+                id: newId,
+                name: "Новая категория",
+                children: [],
+                prompts: []
+            };
+
+            if (!parent.children) {
+                parent.children = [];
+            }
+
+            parent.children.push(newCategory);
+
+            // Обновляем только родительский узел
+            const li = document.querySelector(`[data-id="${parent.id}"]`);
+            if (li) {
+                refreshTreeNode(parent, li);
+            } else {
+                renderPromptsTree();
+            }
+
+            // Выделяем новую категорию
+            setTimeout(() => {
+                handleSelectItem(newCategory, 'category');
+            }, 50);
+
+            showNotification('Новая категория добавлена', 'success');
+        }
+
+        // Добавление нового промпта
+        function addNewPrompt(parent) {
+            const newId = `prompt_${Date.now()}`;
+            const newPrompt = {
+                id: newId,
+                name: "Новый промпт",
+                text: "Текст нового промпта..."
+            };
+
+            if (!parent.prompts) {
+                parent.prompts = [];
+            }
+
+            parent.prompts.push(newPrompt);
+
+            // Обновляем только родительский узел
+            const li = document.querySelector(`[data-id="${parent.id}"]`);
+            if (li) {
+                refreshTreeNode(parent, li);
+            } else {
+                renderPromptsTree();
+            }
+
+            // Выделяем новый промпт
+            setTimeout(() => {
+                handleSelectItem(newPrompt, 'prompt');
+            }, 50);
+
+            showNotification('Новый промпт добавлен', 'success');
+        }
+
+        // Проверка, является ли категория пустой
+        function isCategoryEmpty(category) {
+            const hasChildren = category.children && category.children.length > 0;
+            const hasPrompts = category.prompts && category.prompts.length > 0;
+            return !hasChildren && !hasPrompts;
+        }
+
+        // Удаление элемента
+        function deleteItem(item, element) {
+            // Проверка для категории: если не пуста, запрещаем удаление
+            if (item.children || item.prompts) {
+                if (!isCategoryEmpty(item)) {
+                    showNotification('Невозможно удалить непустую категорию. Сначала удалите все вложенные элементы.', 'error');
+                    return;
+                }
+            }
+
+            if (!confirm(`Вы уверены, что хотите удалить "${item.name}"?`)) return;
+
+            // Находим родительский элемент
+            const parentId = element.dataset.parent;
+
+            if (parentId) {
+                // Находим родителя в данных
+                const parent = findItemById(promptsData, parentId);
+                if (parent) {
+                    if (parent.children) {
+                        parent.children = parent.children.filter(child => child.id !== item.id);
+                    }
+                    if (parent.prompts) {
+                        parent.prompts = parent.prompts.filter(prompt => prompt.id !== item.id);
+                    }
+
+                    // Обновляем родительский узел
+                    const parentLi = document.querySelector(`[data-id="${parentId}"]`);
+                    if (parentLi) {
+                        refreshTreeNode(parent, parentLi);
+                    }
+                }
+            } else {
+                // Удаление корневого элемента
+                promptsData = promptsData.filter(root => root.id !== item.id);
+                renderPromptsTree();
+            }
+
+            showNotification('Элемент удален', 'warning');
+
+            // Скрываем редактор, если удален выбранный элемент
+            if (state.selectedNode && state.selectedNode.id === item.id) {
+                document.getElementById('empty-editor').style.display = 'flex';
+                document.getElementById('category-editor').style.display = 'none';
+                document.getElementById('prompt-editor').style.display = 'none';
+                state.selectedNode = null;
+            }
+        }
+
+        // Удаление дочернего элемента
+        function deleteChildItem(parent, item, type) {
+            // Проверка для подкатегорий: если не пуста, запрещаем удаление
+            if (type === 'children') {
+                if (!isCategoryEmpty(item)) {
+                    showNotification('Невозможно удалить непустую категорию. Сначала удалите все вложенные элементы.', 'error');
+                    return;
+                }
+            }
+
+            if (!confirm(`Вы уверены, что хотите удалить "${item.name}"?`)) return;
+
+            if (type === 'children') {
+                parent.children = parent.children.filter(child => child.id !== item.id);
+            } else if (type === 'prompts') {
+                parent.prompts = parent.prompts.filter(prompt => prompt.id !== item.id);
+            }
+
+            updateChildrenList(parent);
+            showNotification('Элемент удален', 'warning');
+        }
+
+        // Поиск элемента по ID
+        function findItemById(items, id) {
+            for (const item of items) {
+                if (item.id === id) return item;
+
+                if (item.children) {
+                    const foundInChildren = findItemById(item.children, id);
+                    if (foundInChildren) return foundInChildren;
+                }
+
+                if (item.prompts) {
+                    const foundInPrompts = item.prompts.find(p => p.id === id);
+                    if (foundInPrompts) return foundInPrompts;
+                }
+            }
+            return null;
+        }
+
+        // Сохранение изменений категории
+        function saveCategoryChanges() {
+            if (!state.selectedNode) return;
+
+            const id = document.getElementById('category-id').value;
+            const name = document.getElementById('category-name').value;
+
+            if (!id || !name) {
+                showNotification('ID и название категории обязательны', 'error');
+                return;
+            }
+
+            // Обновляем данные
+            state.selectedNode.id = id;
+            state.selectedNode.name = name;
+
+            // Обновляем узел дерева
+            const li = document.querySelector(`[data-id="${id}"]`);
+            if (li) {
+                refreshTreeNode(state.selectedNode, li);
+            }
+
+            showNotification('Изменения категории сохранены', 'success');
+        }
+
+        // Сохранение изменений промпта
+        function savePromptChanges() {
+            if (!state.selectedNode) return;
+
+            const id = document.getElementById('prompt-id').value;
+            const name = document.getElementById('prompt-name').value;
+            const text = document.getElementById('prompt-text').value;
+
+            if (!id || !name || !text) {
+                showNotification('Все поля обязательны для заполнения', 'error');
+                return;
+            }
+
+            // Обновляем данные
+            state.selectedNode.id = id;
+            state.selectedNode.name = name;
+            state.selectedNode.text = text;
+
+            // Обновляем узел дерева
+            const li = document.querySelector(`[data-id="${id}"]`);
+            if (li) {
+                refreshTreeNode(state.selectedNode, li);
+            }
+
+            showNotification('Изменения промпта сохранены', 'success');
+        }
+
+        // Скачивание файла prompts.json
+        function downloadPromptsJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(promptsData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "prompts.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showNotification('Файл prompts.json скачан', 'success');
+        }
+
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Развернуть все узлы
+        function expandAllNodes() {
+            // Помечаем все узлы как развернутые
+            function markExpanded(items) {
+                items.forEach(item => {
+                    state.expandedNodes[item.id] = true;
+                    if (item.children) markExpanded(item.children);
+                    if (item.prompts) markExpanded(item.prompts);
+                });
+            }
+
+            markExpanded(promptsData);
+            renderPromptsTree();
+        }
+
+        // Свернуть все узлы
+        function collapseAllNodes() {
+            // Помечаем все узлы как свернутые
+            function markCollapsed(items) {
+                items.forEach(item => {
+                    state.expandedNodes[item.id] = false;
+                    if (item.children) markCollapsed(item.children);
+                    if (item.prompts) markCollapsed(item.prompts);
+                });
+            }
+
+            markCollapsed(promptsData);
+            renderPromptsTree();
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            document.getElementById('save-category-btn').addEventListener('click', saveCategoryChanges);
+            document.getElementById('save-prompt-btn').addEventListener('click', savePromptChanges);
+            document.getElementById('delete-category-btn').addEventListener('click', () => {
+                if (state.selectedNode) {
+                    const element = document.querySelector(`[data-id="${state.selectedNode.id}"]`);
+                    if (element) {
+                        deleteItem(state.selectedNode, element);
+                    }
+                }
+            });
+            document.getElementById('delete-prompt-btn').addEventListener('click', () => {
+                if (state.selectedNode) {
+                    const element = document.querySelector(`[data-id="${state.selectedNode.id}"]`);
+                    if (element) {
+                        deleteItem(state.selectedNode, element);
+                    }
+                }
+            });
+            document.getElementById('add-subcategory-btn').addEventListener('click', () => {
+                if (state.selectedNode) {
+                    addNewCategory(state.selectedNode);
+                }
+            });
+            document.getElementById('add-prompt-btn').addEventListener('click', () => {
+                if (state.selectedNode) {
+                    addNewPrompt(state.selectedNode);
+                }
+            });
+            document.getElementById('download-btn').addEventListener('click', downloadPromptsJson);
+            document.getElementById('save-all-btn').addEventListener('click', () => {
+                showNotification('Все изменения сохранены', 'success');
+            });
+            document.getElementById('add-category-btn').addEventListener('click', () => {
+                const newId = `root_category_${Date.now()}`;
+                const newCategory = {
+                    id: newId,
+                    name: "Новая корневая категория",
+                    children: [],
+                    prompts: []
+                };
+
+                promptsData.push(newCategory);
+                renderPromptsTree();
+                showNotification('Новая корневая категория добавлена', 'success');
+            });
+            document.getElementById('expand-all-btn').addEventListener('click', expandAllNodes);
+            document.getElementById('collapse-all-btn').addEventListener('click', collapseAllNodes);
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
