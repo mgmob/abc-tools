@@ -243,6 +243,7 @@
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
             line-height: 1.6;
             font-size: 1.1rem;
+            position: relative;
         }
 
         .field-placeholder {
@@ -401,7 +402,8 @@
         <!-- Правая панель - Генерация промпта -->
         <div class="panel right-panel">
             <h2 class="panel-title"><i class="fas fa-file-alt"></i> Результат</h2>
-            <div id="prompt-display" class="prompt-display">
+            <div id="prompt-display-container" class="prompt-display">
+                <div id="prompt-display" contenteditable="true"></div>
                 <div class="empty-state">
                     <i class="fas fa-arrow-left"></i>
                     <h3>Шаблон не выбран</h3>
